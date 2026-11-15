@@ -162,8 +162,10 @@ python fake_sender.py --pattern steps  # holds known attitudes, printing what to
   the firmware reads it only after its interrupt line (GPIO16) fires.
 - **Motion sensor:** a QMI8658 at I2C 0x6B drives demo mode. Its axes, measured on this
   board: +X points to the top of the screen, +Y to the right, and −Z towards the viewer.
-  Leaning the board left shows a left bank, and tilting its top away shows nose up. Without
-  the sensor, demo mode falls back to a slow sweep.
+  Leaning the board left shows a left bank, and tilting its top away shows nose up. Level
+  flight shows when the board's top is tilted back about 25°, for easier viewing; change
+  `TILT_LEVEL_BACK_DEG` in `main.cpp` to adjust. Without the sensor, demo mode falls back
+  to a slow sweep.
 - **I2C bus:** SDA on GPIO15 and SCL on GPIO7. The bus carries the expander (0x20), the RTC
   (0x51) and the IMU (0x6B).
 - **Rendering:**

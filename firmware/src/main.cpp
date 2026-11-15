@@ -51,6 +51,9 @@ static volatile uint32_t settingsChangedAt = 0;
 // ground, so leaning the board left (anticlockwise) gives the left-bank picture a real
 // attitude indicator would show, and tilting the top away from you reads as nose up.
 static constexpr float TILT_TAU_S = 0.12f;      // accelerometer smoothing
+// The board shows level flight when its top is tilted back by this much, which suits
+// viewing it on a desk or stand. 0 = level when held exactly upright.
+static constexpr float TILT_LEVEL_BACK_DEG = 25.0f;
 static bool imuPresent = false;
 static volatile float tiltPitch = 0, tiltBank = 0;
 
@@ -69,7 +72,7 @@ static void pollTilt() {
     f.z += (g.z - f.z) * k;
     const float up = f.x, right = f.y, toward = -f.z;
     tiltBank = -atan2f(right, up) * 57.29578f;
-    tiltPitch = atan2f(toward, sqrtf(up * up + right * right)) * 57.29578f;
+    tiltPitch = atan2f(toward, sqrtf(up * up + right * right)) * 57.29578f - TILT_LEVEL_BACK_DEG;
 }
 
 // ------------------------------------------------------------------ input (core 1)
