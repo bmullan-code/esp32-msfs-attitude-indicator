@@ -18,7 +18,6 @@ static constexpr uint16_t C_SKY      = rgb(48, 146, 226);
 static constexpr uint16_t C_GROUND   = rgb(120, 86, 44);
 static constexpr uint16_t C_WHITE    = rgb(255, 255, 255);
 static constexpr uint16_t C_ORANGE   = rgb(255, 128, 0);
-static constexpr uint16_t C_PEDESTAL = rgb(28, 28, 30);
 static constexpr uint16_t C_BEZEL    = rgb(52, 54, 58);
 static constexpr uint16_t C_RIM      = rgb(10, 10, 12);
 static constexpr uint16_t C_RED      = rgb(210, 20, 20);
@@ -297,7 +296,7 @@ static IRAM_ATTR void drawBankScale() {
     ringTriangle(0, 194, 218, 12.0f, C_WHITE);                 // zero-bank index
 }
 
-// 5. Fixed parts: bank pointer, pedestal, miniature airplane, rim and status flag.
+// 5. Fixed parts: bank pointer, miniature airplane, rim and status flag.
 static IRAM_ATTR void fixedRect(float x0, float x1, float y0, float y1, uint16_t c, float clipR = 0) {
     Pt q[4] = {{x0, y0}, {x1, y0}, {x1, y1}, {x0, y1}};
     fillConvex(q, 4, c, clipR);
@@ -310,16 +309,11 @@ static IRAM_ATTR void drawFixedParts(int offset) {
     Pt pointer[3] = {{0, 190}, {-12, 168}, {12, 168}};
     fillConvex(pointer, 3, C_ORANGE, 0);
 
-    // Pedestal holding the miniature airplane.
-    Pt pedestal[4] = {{-9, a - 16}, {9, a - 16}, {46, -R_CARD - 10}, {-46, -R_CARD - 10}};
-    fillConvex(pedestal, 4, C_PEDESTAL, R_CARD);
-
-    // Miniature airplane: wings with turned-down inner ends, a centre post and dot.
+    // Miniature airplane: wings with turned-down inner ends, and a centre dot.
     fixedRect(-104, -36, a - 3.5f, a + 3.5f, C_ORANGE);
     fixedRect(36, 104, a - 3.5f, a + 3.5f, C_ORANGE);
     fixedRect(-40, -33, a - 14, a + 3.5f, C_ORANGE);
     fixedRect(33, 40, a - 14, a + 3.5f, C_ORANGE);
-    fixedRect(-2.5f, 2.5f, a - 16, a, C_ORANGE);
     Pt dot[8];
     for (int i = 0; i < 8; i++) dot[i] = {5.5f * cosf(i * 45 * DEG), a + 5.5f * sinf(i * 45 * DEG)};
     fillConvex(dot, 8, C_ORANGE, 0);
