@@ -5,7 +5,8 @@
 // display's bounce-buffer interrupt, which is pinned to the core that created the panel.
 //
 // Modes
-//   DEMO     no data received since power-up (or toggled by double-tap): self-test sweep
+//   DEMO     no data received since power-up (or toggled by double-tap): the instrument
+//            follows how the board itself is tilted, using its accelerometer
 //   LIVE     samples arriving from the PC bridge
 //   NO DATA  samples stopped for more than a second: the card freezes
 //   OFF      the bridge reports the instrument unpowered or failed
@@ -27,6 +28,7 @@
 #include "renderer.h"
 #include "simlink.h"
 #include "settings.h"
+#include "imu.h"
 
 static constexpr uint32_t STALE_MS        = 1000;
 static constexpr float    SMOOTH_TAU_S    = 0.06f;  // display lag behind the sim
@@ -42,6 +44,33 @@ static portMUX_TYPE stateMux = portMUX_INITIALIZER_UNLOCKED;
 static Settings cfg;
 static volatile bool demoForced = false;
 static volatile uint32_t settingsChangedAt = 0;
+
+// ------------------------------------------------------------------ board tilt (demo mode)
+// Accelerometer axes on this board, measured: +X points to the top of the screen, +Y to the
+// right, and -Z out of the screen towards the viewer. The reading points away from the
+// ground, so leaning the board left (anticlockwise) gives the left-bank picture a real
+// attitude indicator would show, and tilting the top away from you reads as nose up.
+static constexpr float TILT_TAU_S = 0.12f;      // accelerometer smoothing
+static bool imuPresent = false;
+static volatile float tiltPitch = 0, tiltBank = 0;
+
+static void pollTilt() {
+    static uint32_t last = 0;
+    static Vec3 f = {1, 0, 0};
+    const uint32_t now = millis();
+    if (now - last < 10) return;
+    const float dt = (now - last) / 1000.0f;
+    last = now;
+    Vec3 g;
+    if (!imu::readAccel(g)) return;
+    const float k = 1.0f - expf(-dt / TILT_TAU_S);
+    f.x += (g.x - f.x) * k;
+    f.y += (g.y - f.y) * k;
+    f.z += (g.z - f.z) * k;
+    const float up = f.x, right = f.y, toward = -f.z;
+    tiltBank = -atan2f(right, up) * 57.29578f;
+    tiltPitch = atan2f(toward, sqrtf(up * up + right * right)) * 57.29578f;
+}
 
 // ------------------------------------------------------------------ input (core 1)
 static void onGesture(Gesture g) {
@@ -138,6 +167,8 @@ void setup() {
     renderer::begin();
     if (!display::begin()) Serial.println("ERROR: display init failed");
     touch::begin();
+    imuPresent = imu::begin();
+    Serial.printf("imu %s\n", imuPresent ? "ok" : "not found");
     xTaskCreatePinnedToCore(renderTask, "render", 8192, nullptr, 3, nullptr, 0);
     Serial.printf("attitude indicator ready (cpu %lu MHz, free internal %u KB)\n", (unsigned long)getCpuFrequencyMhz(), (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024));
 }
@@ -159,9 +190,14 @@ static void renderFrame() {
     AttitudeView view{};
     float targetPitch = shownPitch, targetBank = shownBank;
     if (demoForced || !everReceived) {
-        const float t = now / 1000.0f;
-        targetPitch = 15.0f * sinf(t * 0.50f);
-        targetBank = 50.0f * sinf(t * 0.31f);
+        if (imuPresent) {                         // follow the board's own tilt
+            targetPitch = tiltPitch;
+            targetBank = tiltBank;
+        } else {                                  // no sensor: slow self-test sweep
+            const float t = now / 1000.0f;
+            targetPitch = 15.0f * sinf(t * 0.50f);
+            targetBank = 50.0f * sinf(t * 0.31f);
+        }
         view.flag = Flag::Demo;
     } else if (!fresh) {
         view.flag = Flag::NoData;                 // hold the last attitude
@@ -227,6 +263,7 @@ static void renderTask(void*) {
 }
 
 void loop() {
+    if (imuPresent) pollTilt();
     pollInputs();
     delay(2);
 }

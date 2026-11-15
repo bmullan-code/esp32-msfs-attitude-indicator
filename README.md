@@ -35,7 +35,7 @@ bridge/                   Python, runs on the Windows PC
 
 | Mode    | When                                                     | Shows                              |
 |---------|----------------------------------------------------------|------------------------------------|
-| DEMO    | no data since power-up, or toggled with a double tap     | a slow climb/bank sweep            |
+| DEMO    | no data since power-up, or toggled with a double tap     | follows the board's own tilt      |
 | LIVE    | samples arriving from the bridge                         | the simulator's attitude           |
 | NO DATA | samples stopped for more than a second, or no sim        | red flag, card frozen              |
 | OFF     | the bridge reports the gauge failed                      | red OFF flag                       |
@@ -153,6 +153,10 @@ python fake_sender.py --pattern steps  # holds known attitudes, printing what to
   first. Building with `-DTEST_PATTERN` shows four solid colour quadrants for checking this.
 - **Touch:** a CST820 at I2C 0x15. It doesn't answer on I2C until it has been touched, so
   the firmware reads it only after its interrupt line (GPIO16) fires.
+- **Motion sensor:** a QMI8658 at I2C 0x6B drives demo mode. Its axes, measured on this
+  board: +X points to the top of the screen, +Y to the right, and −Z towards the viewer.
+  Leaning the board left shows a left bank, and tilting its top away shows nose up. Without
+  the sensor, demo mode falls back to a slow sweep.
 - **I2C bus:** SDA on GPIO15 and SCL on GPIO7. The bus carries the expander (0x20), the RTC
   (0x51) and the IMU (0x6B).
 - **Rendering:**
