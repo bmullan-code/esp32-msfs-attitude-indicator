@@ -9,6 +9,9 @@ the style of the FAA *Pilot's Handbook of Aeronautical Knowledge*: a blue and br
 rotates with bank and slides with pitch, a pitch ladder, a bank scale with a fixed pointer,
 and a fixed orange miniature airplane.
 
+Without the simulator, the instrument runs in demo mode and follows the board's own tilt
+through its motion sensor: lean it left and it shows a left bank.
+
 ```
  MSFS 2020 ──SimConnect──▶ bridge/msfs_bridge.py ──USB serial, 30 Hz──▶ ESP32-S3 + round LCD
 ```
@@ -17,13 +20,16 @@ and a fixed orange miniature airplane.
 
 ```
 firmware/                 PlatformIO project for the ESP32-S3 (Arduino-ESP32 3.x)
+  platformio.ini          board, memory and upload settings
   src/main.cpp            modes, smoothing, input handling, render loop
   src/renderer.cpp        draws the instrument
   src/display.cpp         ST7701 panel set-up, double-buffered RGB output, backlight
   src/simlink.cpp         serial protocol receiver
+  src/imu.cpp             QMI8658 accelerometer, for demo-mode tilt
   src/touch.cpp           CST820 touch gestures
   src/expander.cpp        TCA9554 I/O expander (panel/touch reset, panel CS, buzzer)
   src/settings.cpp        settings saved in flash
+  src/board.h             pin map
 bridge/                   Python, runs on the Windows PC
   msfs_bridge.py          SimConnect -> serial bridge
   attitude_link.py        serial protocol and automatic port discovery
@@ -75,7 +81,8 @@ either of the board's USB-C ports.
 
 ## Firmware: build and flash
 
-Install [PlatformIO](https://platformio.org/) (the VS Code extension or `pip install platformio`), then:
+Install [PlatformIO](https://platformio.org/) (the VS Code extension or `pip install platformio`), then
+run the commands below. The first build downloads the ESP32 platform and takes a few minutes.
 
 ```
 cd firmware
@@ -170,6 +177,7 @@ python fake_sender.py --pattern steps  # holds known attitudes, printing what to
 
 **Tested on the board:**
 - The instrument draws correctly in demo mode, checked by eye.
+- Demo mode follows the board's tilt correctly in both bank and pitch.
 - The firmware runs at about 30 frames per second.
 - The serial protocol works, including the checksum and automatic port discovery.
 - The firmware switches correctly between DEMO, LIVE and NO DATA.

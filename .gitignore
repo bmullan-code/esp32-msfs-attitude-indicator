@@ -1,11 +1,27 @@
-# PlatformIO
+# PlatformIO build output and IDE files
+.pio/
 firmware/.pio/
-firmware/.vscode/
+.vscode/
+.idea/
+
 # Python
 __pycache__/
-*.pyc
+*.py[cod]
 .venv/
 venv/
-# Local bridge settings
+*.egg-info/
+
+# Local settings (may contain machine-specific ports)
 bridge/config.ini
+.env
+
+# Logs and editor/OS clutter
+*.log
+*.swp
+*~
 .DS_Store
+Thumbs.db
+
+# Firmware backups and dumps are large and board-specific; keep them out of the repo
+*.bin
+!firmware/**/*.bin.keep
