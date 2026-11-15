@@ -145,8 +145,12 @@ python fake_sender.py --pattern steps  # holds known attitudes, printing what to
 - **Board:** Waveshare ESP32-S3-Touch-LCD-2.1, with an ESP32-S3R8, 16 MB flash and 8 MB
   octal PSRAM.
 - **Display:** an ST7701 panel on a 16-bit RGB interface. The panel is configured once over
-  3-wire SPI on GPIO1/2, and its chip-select and reset are on the TCA9554 expander. The
-  register sequence comes from Waveshare's demo for this board.
+  3-wire SPI on GPIO1/2, and its chip-select and reset are on the TCA9554 expander.
+- **Panel register sequence:** taken from the factory firmware shipped on the board. The
+  sequence in Waveshare's current demo download is for a different panel batch. On this
+  board it makes the image roll and can leave the panel washed out or tinted for a while
+  afterwards. If a future board shows rolling lines, compare its factory firmware's sequence
+  first. Building with `-DTEST_PATTERN` shows four solid colour quadrants for checking this.
 - **Touch:** a CST820 at I2C 0x15. It doesn't answer on I2C until it has been touched, so
   the firmware reads it only after its interrupt line (GPIO16) fires.
 - **I2C bus:** SDA on GPIO15 and SCL on GPIO7. The bus carries the expander (0x20), the RTC
@@ -161,6 +165,7 @@ python fake_sender.py --pattern steps  # holds known attitudes, printing what to
 ## Status
 
 **Tested on the board:**
+- The instrument draws correctly in demo mode, checked by eye.
 - The firmware runs at about 30 frames per second.
 - The serial protocol works, including the checksum and automatic port discovery.
 - The firmware switches correctly between DEMO, LIVE and NO DATA.
@@ -169,7 +174,6 @@ python fake_sender.py --pattern steps  # holds known attitudes, printing what to
   finds the device, and the device goes LIVE with the expected attitude.
 
 **Still to verify:**
-- The look and orientation of the drawn instrument, by eye.
 - The touch gestures.
 - The bridge against MSFS itself on the Windows PC. The sign check above is the first thing
   to do there.

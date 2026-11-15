@@ -210,6 +210,19 @@ static void renderFrame() {
 }
 
 static void renderTask(void*) {
+#ifdef TEST_PATTERN
+    // Four solid quadrants (red, green, blue, white) drawn once into both buffers.
+    for (int b = 0; b < 2; b++) {
+        uint16_t* fb = display::backBuffer();
+        for (int y = 0; y < LCD_H; y++)
+            for (int x = 0; x < LCD_W; x++)
+                fb[y * LCD_W + x] = (y < 240) ? (x < 240 ? 0xF800 : 0x07E0) : (x < 240 ? 0x001F : 0xFFFF);
+        display::present();
+    }
+    display::setBacklight(80);
+    Serial.println("test pattern shown");
+    for (;;) vTaskDelay(1000);
+#endif
     for (;;) renderFrame();
 }
 

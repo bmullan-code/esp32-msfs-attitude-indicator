@@ -131,7 +131,9 @@ struct Mask {
 };
 
 static Mask makeMask(const char* text, const GFXfont* font) {
+    // Text wrapping must be off: it is on by default, and the measuring canvas is tiny.
     GFXcanvas1 probe(1, 1);
+    probe.setTextWrap(false);
     probe.setFont(font);
     int16_t bx, by;
     uint16_t bw, bh;
@@ -141,6 +143,7 @@ static Mask makeMask(const char* text, const GFXfont* font) {
     m.h = bh + 2;
     GFXcanvas1 canvas(m.w, m.h);
     canvas.fillScreen(0);
+    canvas.setTextWrap(false);
     canvas.setFont(font);
     canvas.setTextColor(1);
     canvas.setCursor(1 - bx, 1 - by);
