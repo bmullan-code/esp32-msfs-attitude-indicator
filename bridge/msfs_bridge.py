@@ -9,8 +9,8 @@ finds the device by itself, and reconnects to either if they go away.
     python msfs_bridge.py --source aircraft      # true attitude instead of the gauge
     python msfs_bridge.py --show-raw             # print raw sim values (for checking signs)
 
-Settings can also live in config.ini next to this file (see config.example.ini);
-command-line options take precedence.
+Settings can also live in config.ini next to this file, or next to msfs_bridge.exe
+(see config.example.ini); command-line options take precedence.
 """
 
 from __future__ import annotations
@@ -45,6 +45,12 @@ SLIP_VAR = (b"TURN COORDINATOR BALL", b"Position")            # -127..127 in "Po
 FAILED_VAR = (b"PARTIAL PANEL ATTITUDE", b"Enum")             # non-zero when failed
 
 
+# When packaged by PyInstaller, __file__ points into a temporary folder, so look for
+# config.ini beside the .exe instead.
+FROZEN = getattr(sys, "frozen", False)
+APP_DIR = Path(sys.executable).parent if FROZEN else Path(__file__).parent
+
+
 def log(msg: str) -> None:
     print(time.strftime("%H:%M:%S"), msg, flush=True)
 
@@ -60,7 +66,7 @@ def load_settings() -> argparse.Namespace:
     args = ap.parse_args()
 
     cfg = configparser.ConfigParser()
-    cfg.read(Path(__file__).with_name("config.ini"))
+    cfg.read(APP_DIR / "config.ini")
     c = cfg["bridge"] if cfg.has_section("bridge") else {}
     args.port = args.port or c.get("port") or None
     args.rate = args.rate or float(c.get("rate", 30))
@@ -181,3 +187,17 @@ if __name__ == "__main__":
         main()
     except KeyboardInterrupt:
         pass
+    except SystemExit as e:
+        # Started by double-clicking the .exe: keep the window open so the message can be read.
+        if FROZEN and e.code not in (None, 0):
+            print(e.code if isinstance(e.code, str) else f"Exited with code {e.code}")
+            input("Press Enter to close.")
+            sys.exit(1)
+        raise
+    except Exception:
+        if not FROZEN:
+            raise
+        import traceback
+        traceback.print_exc()
+        input("Press Enter to close.")
+        sys.exit(1)

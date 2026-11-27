@@ -1,0 +1,72 @@
+# Builds the Windows bridge as standalone .exe files with PyInstaller.
+#
+# - Every push to main that touches bridge/ (or a manual run) builds the files and keeps
+#   them as a downloadable workflow artifact.
+# - Pushing a tag such as v1.0.0 also publishes them as a GitHub release.
+
+name: Bridge exe
+
+on:
+  push:
+    branches: [main]
+    paths: ["bridge/**", ".github/workflows/bridge-exe.yml"]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # needed only to create the release on tag pushes
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: bridge
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller==6.11.1
+
+      - name: Build msfs_bridge.exe
+        # --collect-all bundles SimConnect.dll, which ships inside the SimConnect package.
+        run: pyinstaller --onefile --console --name msfs_bridge --collect-all SimConnect msfs_bridge.py
+
+      - name: Build fake_sender.exe
+        run: pyinstaller --onefile --console --name fake_sender fake_sender.py
+
+      - name: Check the executables
+        run: |
+          ./dist/msfs_bridge.exe --help
+          if ($LASTEXITCODE -ne 0) { throw "msfs_bridge.exe --help failed" }
+          ./dist/fake_sender.exe --help
+          if ($LASTEXITCODE -ne 0) { throw "fake_sender.exe --help failed" }
+          $contents = pyi-archive_viewer --list --recursive dist/msfs_bridge.exe | Out-String
+          if ($contents -notmatch "SimConnect\.dll") { throw "SimConnect.dll is not bundled" }
+          "SimConnect.dll is bundled"
+
+      - name: Package
+        run: |
+          New-Item -ItemType Directory -Force package | Out-Null
+          Copy-Item dist/msfs_bridge.exe, dist/fake_sender.exe, config.example.ini package/
+          Compress-Archive -Path package/* -DestinationPath msfs-bridge-windows.zip -Force
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: msfs-bridge-windows
+          path: bridge/package/*
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" msfs-bridge-windows.zip `
+            --title "${{ github.ref_name }}" --generate-notes

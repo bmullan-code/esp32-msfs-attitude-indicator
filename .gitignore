@@ -11,6 +11,13 @@ __pycache__/
 venv/
 *.egg-info/
 
+# PyInstaller output
+bridge/build/
+bridge/dist/
+bridge/package/
+bridge/*.spec
+bridge/*.zip
+
 # Local settings (may contain machine-specific ports)
 bridge/config.ini
 .env

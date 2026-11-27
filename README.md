@@ -30,6 +30,7 @@ firmware/                 PlatformIO project for the ESP32-S3 (Arduino-ESP32 3.x
   src/expander.cpp        TCA9554 I/O expander (panel/touch reset, panel CS, buzzer)
   src/settings.cpp        settings saved in flash
   src/board.h             pin map
+.github/workflows/        builds the bridge as Windows .exe files
 bridge/                   Python, runs on the Windows PC
   msfs_bridge.py          SimConnect -> serial bridge
   attitude_link.py        serial protocol and automatic port discovery
@@ -102,6 +103,23 @@ upload again.
 
 ## Bridge: set up on the Windows PC
 
+### Option A: the ready-made .exe (no Python needed)
+
+1. Open the repository's **Releases** page on GitHub and download
+   `msfs-bridge-windows.zip` from the latest release. Builds of the latest code are also
+   available under **Actions → Bridge exe → the latest run → Artifacts**.
+2. Unzip it into a folder of your choice. It contains `msfs_bridge.exe`, `fake_sender.exe`
+   and `config.example.ini`.
+3. Double-click `msfs_bridge.exe`, or run it from a terminal to pass options, for example
+   `msfs_bridge.exe --port COM5`.
+4. Start MSFS and load a flight.
+
+Windows SmartScreen may warn about an unrecognised app the first time, because the .exe
+isn't code-signed. Choose **More info → Run anyway**. To use a settings file, put
+`config.ini` in the same folder as the .exe.
+
+### Option B: run from source
+
 1. Install Python 3.10 or newer from python.org, ticking "Add python.exe to PATH".
 2. In a terminal in the `bridge` folder:
 
@@ -110,8 +128,12 @@ upload again.
    python msfs_bridge.py
    ```
 
-3. Start MSFS and load a flight. The bridge waits for the simulator, finds the indicator
-   on its own, and reports the sample rate every 10 seconds.
+3. Start MSFS and load a flight.
+
+### Running and options
+
+The bridge waits for the simulator, finds the indicator on its own, and reports the sample
+rate every 10 seconds. Leave it running; it reconnects to either if they go away.
 
 Options, which can also go in `config.ini` (copy `config.example.ini`):
 
@@ -140,11 +162,30 @@ If either moves the wrong way, set the matching `invert_` option to `no`.
 
 ### Testing without the simulator
 
-`fake_sender.py` runs on any OS and needs only `pyserial`:
+`fake_sender.py` runs on any OS and needs only `pyserial`. On Windows, `fake_sender.exe`
+from the release zip does the same:
 
 ```
 python fake_sender.py                  # smooth sweep
 python fake_sender.py --pattern steps  # holds known attitudes, printing what to expect
+```
+
+### Building the .exe
+
+The workflow `.github/workflows/bridge-exe.yml` builds both .exe files with PyInstaller on
+a Windows runner whenever `bridge/` changes on `main`. It checks that `SimConnect.dll` is
+bundled and that both programs start. To publish a release, push a version tag:
+
+```
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+To build locally on Windows instead:
+
+```
+pip install -r requirements.txt pyinstaller
+pyinstaller --onefile --name msfs_bridge --collect-all SimConnect msfs_bridge.py
 ```
 
 ## Hardware notes
